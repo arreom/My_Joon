@@ -1,0 +1,9 @@
+{
+  "name": "오늘의 건강기록",
+  "short_name": "건강기록",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f8f6fb",
+  "theme_color": "#7256a8",
+  "lang": "ko"
+}
