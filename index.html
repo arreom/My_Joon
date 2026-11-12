@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#7256a8">
-<meta name="description" content="하루 혈당과 대변량을 기록하고 달력으로 확인하는 개인 건강 기록 앱">
+<meta name="description" content="하루 혈당과 대변 기록을 달력으로 확인하는 개인 건강 기록 앱">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <title>오늘의 건강기록</title>
@@ -20,11 +20,12 @@ h1{font-size:22px;margin:0;font-weight:800;letter-spacing:-.7px}.sub{font-size:1
 .card{background:white;border:1px solid var(--line);border-radius:20px;padding:15px;box-shadow:0 4px 18px #38245a08}
 .week,.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
 .week div{text-align:center;color:var(--muted);font-size:11px;padding:5px 0 8px}
-.day{border:0;background:#fff;border-radius:12px;min-height:56px;padding:6px 2px 4px;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--ink);position:relative}
+.day{border:0;background:#fff;border-radius:12px;min-height:105px;padding:5px 1px 5px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink);position:relative;min-width:0}
 .day.empty{pointer-events:none}.day.today .num{background:var(--purple);color:white}
 .day.selected{outline:2px solid var(--purple);background:#faf8fd}
-.num{width:27px;height:27px;display:grid;place-items:center;border-radius:50%;font-size:13px}
-.dots{height:5px;display:flex;gap:3px}.dot{width:5px;height:5px;border-radius:50%;background:var(--green)}.dot.stool{background:#9b7acb}
+.num{width:25px;height:25px;flex:0 0 25px;display:grid;place-items:center;border-radius:50%;font-size:12px}
+.daydata{width:100%;font-size:8px;line-height:1.35;letter-spacing:-.35px;color:#615b6b;text-align:center;overflow-wrap:anywhere;white-space:nowrap}
+.daystool{color:#8b69b8;font-weight:700}
 .legend{display:flex;gap:15px;font-size:11px;color:var(--muted);margin:12px 3px 0}.legend span{display:flex;align-items:center;gap:5px}
 .legend i{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--green)}.legend .s{background:#9b7acb}
 .sectionhead{display:flex;align-items:center;justify-content:space-between;margin:21px 2px 10px}
@@ -32,10 +33,13 @@ h1{font-size:22px;margin:0;font-weight:800;letter-spacing:-.7px}.sub{font-size:1
 .recordcard{padding:16px}.recordtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}
 .recorddate{font-weight:750}.editbtn{border:0;border-radius:10px;background:var(--purple2);color:var(--purple);padding:8px 12px;font-size:12px;font-weight:700}
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.metric{background:#faf9fc;border-radius:13px;padding:11px}.metric label{display:block;color:var(--muted);font-size:11px;margin-bottom:6px}.metric strong{font-size:18px}.unit{font-size:10px;color:var(--muted);margin-left:3px}
-.stoolline{border-top:1px solid var(--line);margin-top:13px;padding-top:12px;display:flex;justify-content:space-between;align-items:center}
-.stoolvalue{font-weight:750;color:var(--purple)}
-.emptymsg{text-align:center;color:var(--muted);font-size:13px;padding:18px 0}
+.metric{background:#faf9fc;border-radius:13px;padding:11px;border:1px solid transparent;text-align:left;color:var(--ink);width:100%}
+.metric.fastmetric{border-color:#d9cbea;cursor:pointer}
+.metric label{display:block;color:var(--muted);font-size:11px;margin-bottom:6px;pointer-events:none}.metric strong{font-size:18px;pointer-events:none}.unit{font-size:10px;color:var(--muted);margin-left:3px;pointer-events:none}
+.fasttip{font-size:9px;color:var(--purple);display:block;margin-top:5px}
+.stoolline{border-top:1px solid var(--line);margin-top:13px;padding-top:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.stoolvalue{font-weight:750;color:var(--purple);text-align:right}
+.emptymsg{text-align:center;color:var(--muted);font-size:13px;padding:12px 0 16px}
 .footer{font-size:10px;color:#96909e;text-align:center;margin:18px 0 4px;line-height:1.6}
 .overlay{position:fixed;inset:0;background:#17132166;display:none;align-items:flex-end;justify-content:center;z-index:5;padding:10px}
 .overlay.show{display:flex}.sheet{width:100%;max-width:520px;background:white;border-radius:23px 23px 18px 18px;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:92dvh;overflow:auto}
@@ -47,13 +51,12 @@ h1{font-size:22px;margin:0;font-weight:800;letter-spacing:-.7px}.sub{font-size:1
 .inputbox label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px}
 .inputbox input{width:100%;border:0;outline:0;background:transparent;font-size:18px;font-weight:700;color:var(--ink)}
 input::placeholder{font-size:13px;font-weight:400;color:#b4afbb}
-.choices{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
-.choice{border:1px solid var(--line);border-radius:12px;background:white;padding:12px 3px;font-size:12px;color:var(--muted)}
-.choice.active{border-color:var(--purple);background:var(--purple2);color:var(--purple);font-weight:750}
+.stoolinputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 textarea{width:100%;min-height:65px;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:10px;outline-color:var(--purple)}
 .primary{width:100%;border:0;border-radius:14px;background:var(--purple);color:white;padding:14px;font-weight:750;margin-top:18px}
 .secondary{border:1px solid var(--line);background:white;color:var(--muted);border-radius:12px;padding:10px 12px;font-size:12px}
 .tools{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:370px){.calendar{gap:2px}.day{min-height:100px}.daydata{font-size:7px;letter-spacing:-.5px}}
 @media(min-width:520px){.app{padding-top:18px}.overlay{align-items:center}.sheet{border-radius:22px}}
 </style>
 </head>
@@ -78,15 +81,17 @@ textarea{width:100%;min-height:65px;resize:vertical;border:1px solid var(--line)
   <div class="small" id="sheetDate"></div>
   <div class="fieldtitle">혈당 기록 <span class="small">(mg/dL)</span></div>
   <div class="inputs">
-   <div class="inputbox"><label>아침 공복</label><input id="fasting" type="number" inputmode="numeric" min="1" max="1000" placeholder="입력"></div>
-   <div class="inputbox"><label>아침 식후</label><input id="breakfast" type="number" inputmode="numeric" min="1" max="1000" placeholder="입력"></div>
-   <div class="inputbox"><label>점심 식후</label><input id="lunch" type="number" inputmode="numeric" min="1" max="1000" placeholder="입력"></div>
-   <div class="inputbox"><label>저녁 식후</label><input id="dinner" type="number" inputmode="numeric" min="1" max="1000" placeholder="입력"></div>
+   <div class="inputbox"><label for="fasting">아침 공복</label><input id="fasting" type="number" inputmode="numeric" min="1" max="1000" placeholder="입력"></div>
+   <div class="inputbox"><label for="breakfast">아침 식후</label><input id="breakfast" type="number" inputmode="numeric" min="1" max="1000" placeholder="입력"></div>
+   <div class="inputbox"><label for="lunch">점심 식후</label><input id="lunch" type="number" inputmode="numeric" min="1" max="1000" placeholder="입력"></div>
+   <div class="inputbox"><label for="dinner">저녁 식후</label><input id="dinner" type="number" inputmode="numeric" min="1" max="1000" placeholder="입력"></div>
   </div>
-  <div class="fieldtitle">대변량</div>
-  <div class="choices" id="stoolChoices">
-   <button class="choice" data-v="없음">없음</button><button class="choice" data-v="소량">소량</button><button class="choice" data-v="보통">보통</button><button class="choice" data-v="많음">많음</button>
+  <div class="fieldtitle">대변 기록</div>
+  <div class="stoolinputs">
+   <div class="inputbox"><label for="stoolCount">횟수 (회)</label><input id="stoolCount" type="number" inputmode="numeric" min="0" max="99" placeholder="예: 2"></div>
+   <div class="inputbox"><label for="stoolGrams">무게 (g)</label><input id="stoolGrams" type="number" inputmode="numeric" min="0" max="99999" placeholder="예: 350"></div>
   </div>
+  <div class="small" style="margin-top:7px">기존에 선택한 대변량 기록은 그대로 보존돼요.</div>
   <div class="fieldtitle">메모 <span class="small">(선택)</span></div>
   <textarea id="note" placeholder="특이사항을 간단히 적어두세요"></textarea>
   <button class="primary" id="save">저장하기</button>
@@ -95,11 +100,16 @@ textarea{width:100%;min-height:65px;resize:vertical;border:1px solid var(--line)
 <script>
 const KEY='health-log-v1';
 let records={}; try{records=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){records={}}
-let shown=new Date(); let selected=iso(new Date()); let stoolChoice='';
+let shown=new Date(); let selected=iso(new Date());
 const $=id=>document.getElementById(id);
 function iso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function dateLabel(s){const d=new Date(s+'T00:00:00');return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${['일','월','화','수','목','금','토'][d.getDay()]})`}
 function persist(){localStorage.setItem(KEY,JSON.stringify(records))}
+function hasGlucose(r){return ['fasting','breakfast','lunch','dinner'].some(k=>r[k]!==undefined&&r[k]!==null&&r[k]!=='')}
+function stoolCountText(r){
+ if(r.stoolCount!==undefined&&r.stoolCount!==null&&r.stoolCount!=='')return `대변 ${r.stoolCount}회`;
+ return r.stool ? `대변 ${r.stool}` : '';
+}
 function render(){
  $('monthTitle').textContent=`${shown.getFullYear()}년 ${shown.getMonth()+1}월`;
  const first=new Date(shown.getFullYear(),shown.getMonth(),1), last=new Date(shown.getFullYear(),shown.getMonth()+1,0);
@@ -109,37 +119,69 @@ function render(){
   const key=iso(new Date(shown.getFullYear(),shown.getMonth(),n)),r=records[key]||{};
   const b=document.createElement('button');b.className='day'+(key===iso(new Date())?' today':'')+(key===selected?' selected':'');
   const num=document.createElement('span');num.className='num';num.textContent=n;b.append(num);
-  const dots=document.createElement('span');dots.className='dots';
-  if(['fasting','breakfast','lunch','dinner'].some(k=>r[k])){let d=document.createElement('i');d.className='dot';dots.append(d)}
-  if(r.stool){let d=document.createElement('i');d.className='dot stool';dots.append(d)}
-  b.append(dots);b.addEventListener('click',()=>{selected=key;render()});cal.append(b);
+  ['fasting','breakfast','lunch','dinner'].forEach((k,i)=>{
+   if(r[k]!==undefined&&r[k]!==null&&r[k]!==''){
+    const line=document.createElement('span');line.className='daydata';line.textContent=['공복','아침','점심','저녁'][i]+' '+r[k];b.append(line);
+   }
+  });
+  const st=stoolCountText(r);
+  if(st){const line=document.createElement('span');line.className='daydata daystool';line.textContent=st;b.append(line)}
+  b.addEventListener('click',()=>{selected=key;render()});cal.append(b);
  }
  renderRecord();
 }
+function makeMetric(label,key,value,clickable=false){
+ const m=document.createElement(clickable?'button':'div');m.className='metric'+(clickable?' fastmetric':'');
+ if(clickable){m.type='button';m.setAttribute('aria-label','아침 공복혈당 바로 입력');m.onclick=()=>openEditor(true)}
+ const l=document.createElement('label');l.textContent=label;
+ const v=document.createElement('strong');v.textContent=value||'—';
+ const u=document.createElement('span');u.className='unit';u.textContent=value?'mg/dL':'';
+ m.append(l,v,u);
+ if(clickable){const tip=document.createElement('span');tip.className='fasttip';tip.textContent='눌러서 바로 입력';m.append(tip)}
+ return m;
+}
 function renderRecord(){
  $('recordHint').textContent=dateLabel(selected);
- const r=records[selected], card=$('recordCard');card.innerHTML='';
+ const r=records[selected]||{}, card=$('recordCard');card.innerHTML='';
  const top=document.createElement('div');top.className='recordtop';
  const date=document.createElement('div');date.className='recorddate';date.textContent=dateLabel(selected);
- const edit=document.createElement('button');edit.className='editbtn';edit.textContent=r?'수정하기':'+ 기록 입력';edit.onclick=openEditor;top.append(date,edit);card.append(top);
- if(!r){const msg=document.createElement('div');msg.className='emptymsg';msg.textContent='아직 입력된 기록이 없어요.';card.append(msg);return}
- const names=[['아침 공복','fasting'],['아침 식후','breakfast'],['점심 식후','lunch'],['저녁 식후','dinner']];
+ const edit=document.createElement('button');edit.className='editbtn';edit.textContent='전체 기록 입력·수정';edit.onclick=()=>openEditor(false);top.append(date,edit);card.append(top);
  const grid=document.createElement('div');grid.className='metrics';
- names.forEach(([label,k])=>{const m=document.createElement('div');m.className='metric';const l=document.createElement('label');l.textContent=label;const v=document.createElement('strong');v.textContent=r[k]||'—';const u=document.createElement('span');u.className='unit';u.textContent=r[k]?'mg/dL':'';m.append(l,v,u);grid.append(m)});card.append(grid);
- const st=document.createElement('div');st.className='stoolline';const l=document.createElement('span');l.className='small';l.textContent='대변량';const v=document.createElement('span');v.className='stoolvalue';v.textContent=r.stool||'미기록';st.append(l,v);card.append(st);
+ grid.append(makeMetric('아침 공복','fasting',r.fasting,true));
+ grid.append(makeMetric('아침 식후','breakfast',r.breakfast));
+ grid.append(makeMetric('점심 식후','lunch',r.lunch));
+ grid.append(makeMetric('저녁 식후','dinner',r.dinner));
+ card.append(grid);
+ const st=document.createElement('div');st.className='stoolline';
+ const l=document.createElement('span');l.className='small';l.textContent='대변 기록';
+ const v=document.createElement('span');v.className='stoolvalue';
+ if(r.stoolCount!==undefined&&r.stoolCount!==null&&r.stoolCount!==''){
+  let text=`${r.stoolCount}회`;
+  if(r.stoolGrams!==undefined&&r.stoolGrams!==null&&r.stoolGrams!=='')text+=` · ${r.stoolGrams}g`;
+  v.textContent=text;
+ }else{v.textContent=r.stool||'미기록'}
+ st.append(l,v);card.append(st);
  if(r.note){const p=document.createElement('p');p.className='small';p.style.margin='12px 0 0';p.textContent='메모: '+r.note;card.append(p)}
+ if(!hasGlucose(r)&&!stoolCountText(r)&&!r.stool&&!r.note){
+  const msg=document.createElement('div');msg.className='emptymsg';msg.textContent='아침 공복 칸을 누르면 바로 입력할 수 있어요.';card.append(msg);
+ }
 }
-function openEditor(){
- const r=records[selected]||{};$('sheetTitle').textContent=r?'기록 수정':'하루 기록 입력';$('sheetDate').textContent=dateLabel(selected);
- ['fasting','breakfast','lunch','dinner','note'].forEach(k=>$(k).value=r[k]||'');
- stoolChoice=r.stool||'';document.querySelectorAll('.choice').forEach(b=>b.classList.toggle('active',b.dataset.v===stoolChoice));
+function openEditor(focusFasting=false){
+ const r=records[selected]||{};$('sheetTitle').textContent=Object.keys(r).length?'기록 수정':'하루 기록 입력';$('sheetDate').textContent=dateLabel(selected);
+ ['fasting','breakfast','lunch','dinner','note','stoolCount','stoolGrams'].forEach(k=>$(k).value=r[k]??'');
  $('overlay').classList.add('show');
+ if(focusFasting){setTimeout(()=>{$('fasting').focus()},80)}
 }
 function closeEditor(){$('overlay').classList.remove('show')}
-$('stoolChoices').addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(!b)return;stoolChoice=stoolChoice===b.dataset.v?'':b.dataset.v;document.querySelectorAll('.choice').forEach(x=>x.classList.toggle('active',x.dataset.v===stoolChoice))});
 $('save').onclick=()=>{
- const r={};['fasting','breakfast','lunch','dinner'].forEach(k=>{const v=$(k).value.trim();if(v)r[k]=v});
- if(stoolChoice)r.stool=stoolChoice;const note=$('note').value.trim();if(note)r.note=note;
+ const old=records[selected]||{},r={};
+ ['fasting','breakfast','lunch','dinner'].forEach(k=>{const v=$(k).value.trim();if(v)r[k]=v});
+ const count=$('stoolCount').value.trim(),grams=$('stoolGrams').value.trim();
+ if(count!=='')r.stoolCount=count;
+ if(grams!=='')r.stoolGrams=grams;
+ // 이전 버전의 대변 선택 기록은 새 입력이 없을 때 보존
+ if(old.stool)r.stool=old.stool;
+ const note=$('note').value.trim();if(note)r.note=note;
  if(Object.keys(r).length)records[selected]=r;else delete records[selected];
  persist();closeEditor();render();
 };
@@ -148,10 +190,10 @@ $('prev').onclick=()=>{shown=new Date(shown.getFullYear(),shown.getMonth()-1,1);
 $('next').onclick=()=>{shown=new Date(shown.getFullYear(),shown.getMonth()+1,1);render()};
 $('todayBtn').onclick=()=>{shown=new Date();selected=iso(new Date());render()};
 function exportCSV(){
- const rows=[['날짜','아침 공복','아침 식후','점심 식후','저녁 식후','대변량','메모']];
- Object.keys(records).sort().forEach(k=>{const r=records[k];rows.push([k,r.fasting||'',r.breakfast||'',r.lunch||'',r.dinner||'',r.stool||'',r.note||''])});
+ const rows=[['날짜','아침 공복','아침 식후','점심 식후','저녁 식후','대변 횟수','대변 무게(g)','이전 대변량 기록','메모']];
+ Object.keys(records).sort().forEach(k=>{const r=records[k];rows.push([k,r.fasting||'',r.breakfast||'',r.lunch||'',r.dinner||'',r.stoolCount??'',r.stoolGrams??'',r.stool||'',r.note||''])});
  const csv='\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');
- const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='건강기록.csv';a.click();URL.revokeObjectURL(url);
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='오늘돌봄_건강기록.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 $('exportBtn').onclick=exportCSV;$('allExport').onclick=exportCSV;
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
