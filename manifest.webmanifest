@@ -1,9 +1,18 @@
 {
-  "name": "오늘의 건강기록",
-  "short_name": "건강기록",
+  "name": "오늘돌봄",
+  "short_name": "오늘돌봄",
+  "description": "오늘도 세심하게, 하루를 돌보다",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f8f6fb",
   "theme_color": "#7256a8",
-  "lang": "ko"
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
 }
