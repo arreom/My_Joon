@@ -99,7 +99,18 @@ textarea{width:100%;min-height:65px;resize:vertical;border:1px solid var(--line)
 </div>
 <script>
 const KEY='health-log-v1';
-let records={}; try{records=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){records={}}
+
+let records = {};
+
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+
+  if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+    records = saved;
+  }
+} catch (e) {
+  records = {};
+}
 let shown=new Date(); let selected=iso(new Date());
 const $=id=>document.getElementById(id);
 function iso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
