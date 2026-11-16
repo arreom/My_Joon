@@ -1,5 +1,5 @@
 
-const CACHE = 'health-log-v2-cache';
+const CACHE = 'health-log-v3-cache';
 const FILES = [
   './',
   './index.html',
