@@ -36,10 +36,8 @@ h1{font-size:22px;margin:0;font-weight:800;letter-spacing:-.7px}.sub{font-size:1
 .metric{background:#faf9fc;border-radius:13px;padding:11px;border:1px solid transparent;text-align:left;color:var(--ink);width:100%}
 .metric.fastmetric{border-color:#d9cbea;cursor:pointer}
 .metric label{display:block;color:var(--muted);font-size:11px;margin-bottom:6px;pointer-events:none}.metric strong{font-size:18px;pointer-events:none}.unit{font-size:10px;color:var(--muted);margin-left:3px;pointer-events:none}
-.fasttip{font-size:9px;color:var(--purple);display:block;margin-top:5px}
 .stoolline{border-top:1px solid var(--line);margin-top:13px;padding-top:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .stoolvalue{font-weight:750;color:var(--purple);text-align:right}
-.emptymsg{text-align:center;color:var(--muted);font-size:13px;padding:12px 0 16px}
 .footer{font-size:10px;color:#96909e;text-align:center;margin:18px 0 4px;line-height:1.6}
 .overlay{position:fixed;inset:0;background:#17132166;display:none;align-items:flex-end;justify-content:center;z-index:5;padding:10px}
 .overlay.show{display:flex}.sheet{width:100%;max-width:520px;background:white;border-radius:23px 23px 18px 18px;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:92dvh;overflow:auto}
@@ -58,6 +56,8 @@ textarea{width:100%;min-height:65px;resize:vertical;border:1px solid var(--line)
 .tools{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:370px){.calendar{gap:2px}.day{min-height:100px}.daydata{font-size:7px;letter-spacing:-.5px}}
 @media(min-width:520px){.app{padding-top:18px}.overlay{align-items:center}.sheet{border-radius:22px}}
+.legend .pressurekey{background:#286981}.daypressure{color:#286981;font-weight:600;font-variant-numeric:tabular-nums}
+.stoolbutton{width:100%;min-height:44px;background:transparent;color:inherit;border:0;border-top:1px solid var(--line);padding-inline:0;text-align:left}
 </style>
 </head>
 <body>
@@ -67,7 +67,7 @@ textarea{width:100%;min-height:65px;resize:vertical;border:1px solid var(--line)
 <div class="card">
  <div class="week"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
  <div class="calendar" id="calendar"></div>
- <div class="legend"><span><i></i> 혈당 기록</span><span><i class="s"></i> 대변 기록</span></div>
+ <div class="legend"><span><i></i> 혈당 기록</span><span><i class="s"></i> 대변 기록</span><span><i class="pressurekey"></i> 혈압</span></div>
 </div>
 <div class="sectionhead"><h2>선택한 날짜 기록</h2><span class="small" id="recordHint">날짜를 선택하세요</span></div>
 <div class="card recordcard" id="recordCard"></div>
@@ -116,7 +116,6 @@ const $=id=>document.getElementById(id);
 function iso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function dateLabel(s){const d=new Date(s+'T00:00:00');return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${['일','월','화','수','목','금','토'][d.getDay()]})`}
 function persist(){localStorage.setItem(KEY,JSON.stringify(records))}
-function hasGlucose(r){return ['fasting','breakfast','lunch','dinner'].some(k=>r[k]!==undefined&&r[k]!==null&&r[k]!=='')}
 function stoolCountText(r){
  if(r.stoolCount!==undefined&&r.stoolCount!==null&&r.stoolCount!=='')return `대변 ${r.stoolCount}회`;
  return r.stool ? `대변 ${r.stool}` : '';
@@ -135,6 +134,11 @@ function render(){
     const line=document.createElement('span');line.className='daydata';line.textContent=['공복','아침','점심','저녁'][i]+' '+r[k];b.append(line);
    }
   });
+  const bp=r.pressure?.at(-1);
+  if(bp){
+   const line=document.createElement('span');line.className='daydata daypressure';
+   line.textContent=bp.sys+'/'+bp.dia;line.setAttribute('aria-label','혈압 '+line.textContent);b.append(line);
+  }
   const st=stoolCountText(r);
   if(st){const line=document.createElement('span');line.className='daydata daystool';line.textContent=st;b.append(line)}
   b.addEventListener('click',()=>{selected=key;render()});cal.append(b);
@@ -148,7 +152,6 @@ function makeMetric(label,key,value,clickable=true){
  const v=document.createElement('strong');v.textContent=value||'—';
  const u=document.createElement('span');u.className='unit';u.textContent=value?'mg/dL':'';
  m.append(l,v,u);
- if(clickable){const tip=document.createElement('span');tip.className='fasttip';tip.textContent='눌러서 바로 입력';m.append(tip)}
  return m;
 }
 function renderRecord(){
@@ -163,23 +166,21 @@ function renderRecord(){
  grid.append(makeMetric('점심 식후','lunch',r.lunch));
  grid.append(makeMetric('저녁 식후','dinner',r.dinner));
  card.append(grid);
- const st=document.createElement('div');st.className='stoolline';
+ const st=document.createElement('button');st.type='button';st.className='stoolline stoolbutton';
+ st.onclick=()=>openEditor('stoolCount');
  const l=document.createElement('span');l.className='small';l.textContent='대변 기록';
  const v=document.createElement('span');v.className='stoolvalue';
  if(r.stoolCount!==undefined&&r.stoolCount!==null&&r.stoolCount!==''){
   let text=`${r.stoolCount}회`;
   if(r.stoolGrams!==undefined&&r.stoolGrams!==null&&r.stoolGrams!=='')text+=` · ${r.stoolGrams}g`;
   v.textContent=text;
- }else{v.textContent=r.stool||'미기록'}
+ }else{v.textContent=[r.stool,r.stoolGrams!=null && r.stoolGrams!=='' ? r.stoolGrams+'g' : ''].filter(Boolean).join(' · ')||'미기록'}
  st.append(l,v);card.append(st);
  for(const bp of r.pressure || []){
   const line=document.createElement('div');line.className='stoolline';
   line.textContent=['혈압',bp.time,bp.sys+'/'+bp.dia+' mmHg'].filter(Boolean).join(' · ');card.append(line);
  }
  if(r.note){const p=document.createElement('p');p.className='small';p.style.margin='12px 0 0';p.textContent='메모: '+r.note;card.append(p)}
- if(!hasGlucose(r)&&!stoolCountText(r)&&!r.stool&&!r.note&&!r.pressure?.length){
-  const msg=document.createElement('div');msg.className='emptymsg';msg.textContent='혈당 칸을 누르면 바로 입력할 수 있어요.';card.append(msg);
- }
 }
 function openEditor(field=false){
  const r=records[selected]||{};$('sheetTitle').textContent=Object.keys(r).length?'기록 수정':'하루 기록 입력';$('sheetDate').textContent=dateLabel(selected);
