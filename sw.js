@@ -1,5 +1,5 @@
 
-const CACHE = 'health-log-v4-cache';
+const CACHE = 'health-log-v5-cache';
 const FILES = [
   './',
   './index.html',
@@ -34,6 +34,7 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
 
   const isPage =
+    url.pathname === new URL('./manifest.webmanifest', self.registration.scope).pathname ||
     event.request.mode === 'navigate' ||
     url.pathname.endsWith('/index.html') ||
     url.pathname.endsWith('/');
@@ -52,7 +53,7 @@ self.addEventListener('fetch', event => {
         })
         .catch(() =>
           caches.match(event.request).then(
-            cached => cached || caches.match('./index.html')
+            cached => cached || (event.request.mode === 'navigate' ? caches.match('./index.html') : Response.error())
           )
         )
     );

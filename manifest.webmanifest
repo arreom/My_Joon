@@ -1,7 +1,7 @@
 {
   "name": "오늘돌봄",
   "short_name": "오늘돌봄",
-  "id": "./today-care",
+  "id": "/My_Joon/",
   "description": "오늘도 세심하게, 하루를 돌보다",
   "start_url": "./",
   "scope": "./",
