@@ -1,7 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#7256a8"/>
-  <path d="M256 369c-18-14-126-91-126-180 0-49 35-83 81-83 29 0 53 15 66 39 13-24 37-39 66-39 46 0 81 34 81 83 0 89-108 166-126 180l-21 16z"
-        fill="#fff" opacity=".97"/>
-  <path d="M151 249h66l24-43 36 91 30-58 18 10h39"
-        fill="none" stroke="#594080" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect width="512" height="512" rx="112" fill="#f4edfc"/>
+  <path d="M256 398C228 377 80 278 80 183C80 94 194 69 256 147C318 69 432 94 432 183C432 278 284 377 256 398Z" fill="#8054ad"/>
+  <clipPath id="heart"><path d="M256 398C228 377 80 278 80 183C80 94 194 69 256 147C318 69 432 94 432 183C432 278 284 377 256 398Z"/></clipPath>
+  <path clip-path="url(#heart)" d="M64 242H194L218 209L250 295L282 174L312 242H448" fill="none" stroke="#fff" stroke-width="14" stroke-linejoin="round"/>
 </svg>

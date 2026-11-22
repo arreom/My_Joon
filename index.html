@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#7256a8">
 <meta name="description" content="오늘도 세심하게, 하루를 돌보다. 오늘돌봄 건강 기록 앱">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon.svg?v=4" type="image/svg+xml">
 <title>오늘돌봄</title>
 <style>
 :root{--purple:#7256a8;--purple2:#eee8f7;--ink:#292536;--muted:#817b8c;--line:#ece8f1;--bg:#f8f6fb;--white:#fff;--green:#4c9870}
@@ -72,7 +72,7 @@ textarea{width:100%;min-height:65px;resize:vertical;border:1px solid var(--line)
 <div class="sectionhead"><h2>선택한 날짜 기록</h2><span class="small" id="recordHint">날짜를 선택하세요</span></div>
 <div class="card recordcard" id="recordCard"></div>
 <div class="sectionhead"><h2>기록 관리</h2><span class="small">이 기기 안에 저장됩니다</span></div>
-<div class="tools"><button class="secondary" id="todayBtn">오늘로 이동</button><button class="secondary" id="allExport">CSV 파일로 내보내기</button></div>
+<div class="tools"><button class="secondary" id="todayBtn">오늘로 이동</button><button class="secondary" id="allExport">CSV 파일로 내보내기</button><button class="secondary" id="importBtn">오므론 혈압 CSV 가져오기</button><input type="file" id="pressureFile" accept=".csv,text/csv" hidden></div><p class="small" role="status" id="importStatus"></p>
 <div class="footer">기록은 이 휴대폰의 브라우저에 저장됩니다.<br>앱 데이터 삭제 또는 브라우저 초기화 전에는 백업 파일을 내보내 주세요.</div>
 </div>
 <div class="overlay" id="overlay">
@@ -141,9 +141,9 @@ function render(){
  }
  renderRecord();
 }
-function makeMetric(label,key,value,clickable=false){
+function makeMetric(label,key,value,clickable=true){
  const m=document.createElement(clickable?'button':'div');m.className='metric'+(clickable?' fastmetric':'');
- if(clickable){m.type='button';m.setAttribute('aria-label','아침 공복혈당 바로 입력');m.onclick=()=>openEditor(true)}
+ if(clickable){m.type='button';m.setAttribute('aria-label',label+' 혈당 바로 입력');m.onclick=()=>openEditor(key)}
  const l=document.createElement('label');l.textContent=label;
  const v=document.createElement('strong');v.textContent=value||'—';
  const u=document.createElement('span');u.className='unit';u.textContent=value?'mg/dL':'';
@@ -172,16 +172,20 @@ function renderRecord(){
   v.textContent=text;
  }else{v.textContent=r.stool||'미기록'}
  st.append(l,v);card.append(st);
+ for(const bp of r.pressure || []){
+  const line=document.createElement('div');line.className='stoolline';
+  line.textContent=['혈압',bp.time,bp.sys+'/'+bp.dia+' mmHg'].filter(Boolean).join(' · ');card.append(line);
+ }
  if(r.note){const p=document.createElement('p');p.className='small';p.style.margin='12px 0 0';p.textContent='메모: '+r.note;card.append(p)}
- if(!hasGlucose(r)&&!stoolCountText(r)&&!r.stool&&!r.note){
-  const msg=document.createElement('div');msg.className='emptymsg';msg.textContent='아침 공복 칸을 누르면 바로 입력할 수 있어요.';card.append(msg);
+ if(!hasGlucose(r)&&!stoolCountText(r)&&!r.stool&&!r.note&&!r.pressure?.length){
+  const msg=document.createElement('div');msg.className='emptymsg';msg.textContent='혈당 칸을 누르면 바로 입력할 수 있어요.';card.append(msg);
  }
 }
-function openEditor(focusFasting=false){
+function openEditor(field=false){
  const r=records[selected]||{};$('sheetTitle').textContent=Object.keys(r).length?'기록 수정':'하루 기록 입력';$('sheetDate').textContent=dateLabel(selected);
  ['fasting','breakfast','lunch','dinner','note','stoolCount','stoolGrams'].forEach(k=>$(k).value=r[k]??'');
  $('overlay').classList.add('show');
- if(focusFasting){setTimeout(()=>{$('fasting').focus()},80)}
+ if(field){$(field).focus();$(field).select()}
 }
 function closeEditor(){$('overlay').classList.remove('show')}
 $('save').onclick=()=>{
@@ -192,6 +196,7 @@ $('save').onclick=()=>{
  if(grams!=='')r.stoolGrams=grams;
  // 이전 버전의 대변 선택 기록은 새 입력이 없을 때 보존
  if(old.stool)r.stool=old.stool;
+ if(old.pressure)r.pressure=old.pressure;
  const note=$('note').value.trim();if(note)r.note=note;
  if(Object.keys(r).length)records[selected]=r;else delete records[selected];
  persist();closeEditor();render();
@@ -201,13 +206,112 @@ $('prev').onclick=()=>{shown=new Date(shown.getFullYear(),shown.getMonth()-1,1);
 $('next').onclick=()=>{shown=new Date(shown.getFullYear(),shown.getMonth()+1,1);render()};
 $('todayBtn').onclick=()=>{shown=new Date();selected=iso(new Date());render()};
 function exportCSV(){
- const rows=[['날짜','아침 공복','아침 식후','점심 식후','저녁 식후','대변 횟수','대변 무게(g)','이전 대변량 기록','메모']];
- Object.keys(records).sort().forEach(k=>{const r=records[k];rows.push([k,r.fasting||'',r.breakfast||'',r.lunch||'',r.dinner||'',r.stoolCount??'',r.stoolGrams??'',r.stool||'',r.note||''])});
+ const rows=[['날짜','아침 공복','아침 식후','점심 식후','저녁 식후','대변 횟수','대변 무게(g)','이전 대변량 기록','메모','혈압 기록 (시간 수축기/이완기 mmHg)']];
+ Object.keys(records).sort().forEach(k=>{const r=records[k];rows.push([k,r.fasting||'',r.breakfast||'',r.lunch||'',r.dinner||'',r.stoolCount??'',r.stoolGrams??'',r.stool||'',r.note||'',(r.pressure||[]).map(p=>[p.time,p.sys+'/'+p.dia].filter(Boolean).join(' ')).join(' | ')])});
  const csv='\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='오늘돌봄_건강기록.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 $('exportBtn').onclick=exportCSV;$('allExport').onclick=exportCSV;
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+function splitCsv(text, delimiter) {
+  const rows = [];
+  let row = [], value = '', quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (quoted && text[i+1] === '"') { value += '"'; i++; }
+      else quoted = !quoted;
+    } else if (!quoted && c === delimiter) {
+      row.push(value.trim()); value = '';
+    } else if (!quoted && (c === '\n' || c === '\r')) {
+      if (c === '\r' && text[i+1] === '\n') i++;
+      row.push(value.trim()); rows.push(row); row = []; value = '';
+    } else value += c;
+  }
+  if (quoted) throw Error('CSV의 따옴표 형식을 확인해 주세요.');
+  row.push(value.trim()); rows.push(row);
+  return rows;
+}
+
+function pressureColumns(row) {
+  const headers = row.map(v => v.toLowerCase().replace(/[\s_]/g, ''));
+  return {
+    date: headers.findIndex(v => /날짜|일시|일자|측정일|측정시간|date/.test(v)),
+    time: headers.findIndex(v => /^(시간|시각|time|측정시각)/.test(v)),
+    sys: headers.findIndex(v => /수축|최고혈압|systolic|^sys\b/.test(v)),
+    dia: headers.findIndex(v => /이완|최저혈압|diastolic|^dia\b/.test(v))
+  };
+}
+
+function measureDate(value, clock) {
+  const m = value.match(/^(\d{4})\s*[-/.년]\s*(\d{1,2})\s*[-/.월]\s*(\d{1,2})[일.]?(.*)$/);
+  if (!m) return null;
+  const date = new Date(+m[1], +m[2]-1, +m[3]);
+  if (date.getMonth()+1 !== +m[2] || date.getDate() !== +m[3]) return null;
+  const raw = (m[4].trim() || clock || '').trim().replace(/^T/, '');
+  let time = '';
+  if (raw) {
+    const t = raw.match(/^(오전|오후|am|pm)?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+    if (!t) return null;
+    let hour = +t[2];
+    const period = (t[1] || t[5] || '').toLowerCase();
+    if (hour > 23 || +t[3] > 59 || +(t[4] || 0) > 59 || (period && (hour < 1 || hour > 12))) return null;
+    if (period) hour = hour % 12 + (['pm','오후'].includes(period) ? 12 : 0);
+    time = [String(hour).padStart(2,'0'), t[3], t[4] || '00'].join(':');
+  }
+  return {day: iso(date), time};
+}
+
+async function importPressure(file) {
+  const bytes = await file.arrayBuffer();
+  let text;
+  const prefix = new Uint8Array(bytes, 0, Math.min(bytes.byteLength, 2));
+  if (prefix[0] === 255 && prefix[1] === 254) text = new TextDecoder('utf-16le').decode(bytes);
+  else {
+    try { text = new TextDecoder('utf-8', {fatal:true}).decode(bytes); }
+    catch { text = new TextDecoder('euc-kr').decode(bytes); }
+  }
+  let data, cols;
+  for (const delimiter of [',','\t',';']) {
+    const rows = splitCsv(text, delimiter);
+    const header = rows.findIndex(row => {
+      cols = pressureColumns(row);
+      return cols.date >= 0 && cols.sys >= 0 && cols.dia >= 0;
+    });
+    if (header >= 0) { data = rows.slice(header+1); break; }
+  }
+  if (!data) throw Error('날짜와 수축기·이완기 혈압 열을 찾지 못했어요. 오므론 혈압 CSV인지 확인해 주세요.');
+  const next = structuredClone(records);
+  let added = 0, duplicates = 0, skipped = 0, latest = '';
+  for (const row of data) {
+    if (!row.some(Boolean)) continue;
+    const stamp = measureDate(row[cols.date] || '', row[cols.time]);
+    const sys = row[cols.sys], dia = row[cols.dia];
+    if (!stamp || !/^\d{1,3}$/.test(sys) || !/^\d{1,3}$/.test(dia) || +sys === 0 || +dia === 0) { skipped++; continue; }
+    const entry = next[stamp.day] ??= {};
+    const list = entry.pressure ??= [];
+    if (list.some(p => p.time === stamp.time && p.sys === +sys && p.dia === +dia)) { duplicates++; continue; }
+    list.push({time: stamp.time, sys:+sys, dia:+dia});
+    list.sort((a,b) => a.time.localeCompare(b.time));
+    if (stamp.day > latest) latest = stamp.day;
+    added++;
+  }
+  if (added) {
+    localStorage.setItem(KEY, JSON.stringify(next));
+    records = next; selected = latest; shown = new Date(latest+'T00:00:00'); render();
+  }
+  return '혈압 '+added+'건 추가 · 중복 '+duplicates+'건 · 읽지 못한 행 '+skipped+'건';
+}
+
+$('importBtn').onclick = () => $('pressureFile').click();
+$('pressureFile').onchange = async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try { $('importStatus').textContent = await importPressure(file); }
+  catch (error) { $('importStatus').textContent = error.message; }
+  finally { event.target.value = ''; }
+};
+
 render();
 </script>
 </body></html>

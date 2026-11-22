@@ -1,10 +1,10 @@
 
-const CACHE = 'health-log-v3-cache';
+const CACHE = 'health-log-v4-cache';
 const FILES = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './icon.svg'
+  './icon.svg?v=4', './heart-192.png', './heart-512.png'
 ];
 
 self.addEventListener('install', event => {
