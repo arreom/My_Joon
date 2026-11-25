@@ -120,6 +120,16 @@ function stoolCountText(r){
  if(r.stoolCount!==undefined&&r.stoolCount!==null&&r.stoolCount!=='')return `대변 ${r.stoolCount}회`;
  return r.stool ? `대변 ${r.stool}` : '';
 }
+function pair(left, right) {
+ return (left || '—') + ' / ' + (right || '—');
+}
+function addCalendarLine(cell, label, value, style = '') {
+ const line = document.createElement('span');
+ line.className = ('daydata ' + style).trim();
+ line.textContent = value;
+ line.setAttribute('aria-label', label + ' ' + value);
+ cell.append(line);
+}
 function render(){
  $('monthTitle').textContent=`${shown.getFullYear()}년 ${shown.getMonth()+1}월`;
  const first=new Date(shown.getFullYear(),shown.getMonth(),1), last=new Date(shown.getFullYear(),shown.getMonth()+1,0);
@@ -129,18 +139,18 @@ function render(){
   const key=iso(new Date(shown.getFullYear(),shown.getMonth(),n)),r=records[key]||{};
   const b=document.createElement('button');b.className='day'+(key===iso(new Date())?' today':'')+(key===selected?' selected':'');
   const num=document.createElement('span');num.className='num';num.textContent=n;b.append(num);
-  ['fasting','breakfast','lunch','dinner'].forEach((k,i)=>{
-   if(r[k]!==undefined&&r[k]!==null&&r[k]!==''){
-    const line=document.createElement('span');line.className='daydata';line.textContent=['공복','아침','점심','저녁'][i]+' '+r[k];b.append(line);
-   }
-  });
-  const bp=r.pressure?.at(-1);
-  if(bp){
-   const line=document.createElement('span');line.className='daydata daypressure';
-   line.textContent=bp.sys+'/'+bp.dia;line.setAttribute('aria-label','혈압 '+line.textContent);b.append(line);
+  if ([r.fasting,r.breakfast,r.lunch,r.dinner].some(value => value != null && value !== '')) {
+   addCalendarLine(b, '공복 / 아침', pair(r.fasting, r.breakfast));
+   addCalendarLine(b, '점심 / 저녁', pair(r.lunch, r.dinner));
   }
-  const st=stoolCountText(r);
-  if(st){const line=document.createElement('span');line.className='daydata daystool';line.textContent=st;b.append(line)}
+  const stool = stoolCountText(r);
+  if (stool) addCalendarLine(b, '대변', stool, 'daystool');
+  const pressure = r.pressure || [];
+  const morning = pressure.filter(p => p.time && p.time < '12:00').at(-1);
+  const evening = pressure.filter(p => p.time && p.time >= '12:00').at(-1);
+  if (morning || evening) {
+   addCalendarLine(b, '오전 / 오후 수축기 혈압', pair(morning?.sys, evening?.sys), 'daypressure');
+  }
   b.addEventListener('click',()=>{selected=key;render()});cal.append(b);
  }
  renderRecord();
